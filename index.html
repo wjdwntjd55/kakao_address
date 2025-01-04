@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <title>주소 찾기</title>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0"
+    />
+    <style>
+      #layer {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        z-index: 1000;
+        overflow: hidden;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid #ddd; 
+      }
+    </style>
+  </head>
+  <body onload="execDaumPostcode()">
+    <div id="layer"></div>
+    <script src="https://spi.maps.daum.net/imap/map_js_init/postcode.v2.js"></script>
+    <script
+      type="text/javascript"
+      src="//dapi.kakao.com/v2/maps/sdk.js?appkey=236bf311411a1cd6f24e8aa2623eb4ae&libraries=services"
+    ></script>
+    <script>
+      window.addEventListener("message", onReceivedPostMessage, false);
+
+      function onReceivedPostMessage(event) {
+        var action = event.data.action;
+        var params = event.data.params;
+        console.log("onReceivedPostMessage", event);
+      }
+
+      function onReceivedActivityMessageViaJavascriptInterface(json) {
+        var data = JSON.parse(json);
+        var action = data.action;
+        var params = data.params;
+        console.log(
+          "onReceivedActivityMessageViaJavascriptInterface",
+          data
+        );
+      }
+
+      function postMessageToiOS(postData) {
+        if (window.webkit && window.webkit.messageHandlers.callBackHandler) {
+          window.webkit.messageHandlers.callBackHandler.postMessage(postData);
+        } else {
+          console.error("iOS callBackHandler is not defined.");
+        }
+      }
+
+      function postMessageToAndroid(postData) {
+        if (window.AndroidInterface && typeof window.AndroidInterface.postMessage === "function") {
+          window.AndroidInterface.postMessage(JSON.stringify(postData));
+        } else {
+          console.error("AndroidInterface is not defined.");
+        }
+      }
+
+      var geocoder = new kakao.maps.services.Geocoder();
+
+      function execDaumPostcode() {
+        var element_layer = document.getElementById("layer");
+
+        new daum.Postcode({
+          oncomplete: function (data) {
+            var jibunAddress =
+              data.jibunAddress || data.autoJibunAddress || "";
+
+            geocoder.addressSearch(data.roadAddress, (result, status) => {
+              if (status === kakao.maps.services.Status.OK) {
+                var x = result[0].y; // 위도
+                var y = result[0].x; // 경도
+
+                var postData = {
+                  roadAddress: data.roadAddress,
+                  jibunAddress: jibunAddress,
+                  zonecode: data.zonecode,
+                  x: x,
+                  y: y,
+                };
+
+                console.log(postData);
+
+                // iOS로 전송
+                postMessageToiOS(postData);
+
+                // Android로 전송
+                postMessageToAndroid(postData);
+              }
+            });
+          },
+          width: "100%",
+          height: "100%",
+        }).embed(element_layer);
+
+        element_layer.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
