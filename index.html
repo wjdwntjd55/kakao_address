@@ -14,13 +14,16 @@
         new daum.Postcode({
           oncomplete: function(data) {
             var jibunAddress = data.jibunAddress || data.autoJibunAddress || "";
-
+            var buildingName = data.buildingName || "";
+            var apartment = data.apartment || "N";
             var roadAddress = data.roadAddress;
 
             var postData = {
               roadAddress: roadAddress,
               jibunAddress: jibunAddress,
-              zonecode: data.zonecode
+              zonecode: data.zonecode,
+              buildingName: buildingName,
+              apartment: apartment
             };
 
             console.log(postData);
